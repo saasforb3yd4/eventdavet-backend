@@ -17,6 +17,109 @@ from mongo_rsvp_manager import (
 app = Flask(__name__)
 app.config["UPLOAD_FOLDER"] = str(ROOT / "uploads")
 Path(app.config["UPLOAD_FOLDER"]).mkdir(parents=True, exist_ok=True)
+
+
+# ------------------------------------------------------------
+# Shopify Direct Embed Helpers (iframe yok)
+# ------------------------------------------------------------
+def get_public_base_url():
+    """Render/production base URL. Render'da PUBLIC_BASE_URL girilirse onu kullanır."""
+    env_url = (os.getenv("PUBLIC_BASE_URL") or "").strip().rstrip("/")
+    if env_url:
+        return env_url
+    try:
+        return request.host_url.rstrip("/")
+    except Exception:
+        return ""
+
+
+def _extract_between(text, start_marker, end_marker):
+    start = text.find(start_marker)
+    if start == -1:
+        return ""
+    start += len(start_marker)
+    end = text.find(end_marker, start)
+    if end == -1:
+        return text[start:]
+    return text[start:end]
+
+
+def build_shopify_direct_liquid(slug, backend_base=None):
+    """Generated davetiyeyi Shopify Custom Liquid içine yapıştırılabilir direkt HTML'e çevirir."""
+    slug = slugify(slug)
+    backend_base = (backend_base or get_public_base_url()).rstrip("/")
+    html_path = ROOT / "dist" / slug / "index.html"
+    if not html_path.exists():
+        raise FileNotFoundError(f"{slug} için dist/{slug}/index.html bulunamadı. Önce davetiyeyi oluştur.")
+
+    html = html_path.read_text(encoding="utf-8")
+    head = _extract_between(html, "<head>", "</head>")
+    body = _extract_between(html, "<body>", "</body>")
+
+    # Head içindeki style bloklarını al. Meta/title Shopify tarafından zaten yönetilecek.
+    styles = []
+    pos = 0
+    while True:
+        st = head.find("<style", pos)
+        if st == -1:
+            break
+        st_end = head.find("</style>", st)
+        if st_end == -1:
+            break
+        styles.append(head[st:st_end + len("</style>")])
+        pos = st_end + len("</style>")
+    style_block = "\n".join(styles)
+
+    # Relative asset yollarını Render/backend absolute URL'e çevir.
+    replacements = {
+        'src="assets/': f'src="{backend_base}/{slug}/assets/',
+        "src='assets/": f"src='{backend_base}/{slug}/assets/",
+        'href="assets/': f'href="{backend_base}/{slug}/assets/',
+        "href='assets/": f"href='{backend_base}/{slug}/assets/",
+        f'"/{slug}/api/katilim"': f'"{backend_base}/{slug}/api/katilim"',
+        f"'/{slug}/api/katilim'": f"'{backend_base}/{slug}/api/katilim'",
+        f'"/{slug}/katilimcilar"': f'"{backend_base}/{slug}/katilimcilar"',
+        f"'/{slug}/katilimcilar'": f"'{backend_base}/{slug}/katilimcilar'",
+    }
+    for a, b in replacements.items():
+        body = body.replace(a, b)
+        style_block = style_block.replace(a, b)
+
+    reset_css = f"""
+<style>
+/* EventDavet Shopify Direct Reset - iframe yok */
+#shopify-section-header,
+.shopify-section-header,
+header.site-header,
+.header-wrapper,
+.header,
+footer,
+.footer,
+.shopify-section-footer {{ display:none !important; }}
+html, body {{ margin:0 !important; padding:0 !important; }}
+#MainContent,
+main#MainContent,
+.main-content,
+.content-for-layout,
+.template-page,
+.page-width,
+.page-width--narrow {{ max-width:none !important; width:100% !important; margin:0 !important; padding:0 !important; }}
+.eventdavet-shopify-direct {{ width:100%; min-height:100vh; margin:0; padding:0; overflow:hidden; }}
+.eventdavet-shopify-direct * {{ box-sizing:border-box; }}
+</style>
+""".strip()
+
+    notice = f"""{{% comment %}}
+EventDavet Shopify Direct Liquid
+Slug: {slug}
+Backend: {backend_base}
+Bu kod iframe kullanmaz. Shopify Custom Liquid section içine komple yapıştırılır.
+MongoDB bağlantısı Shopify içinde değildir; katılım kayıtları backend API üzerinden yapılır.
+{{% endcomment %}}
+""".strip()
+
+    return f"{notice}\n{reset_css}\n{style_block}\n<div id=\"eventdavet-shopify-{slug}\" class=\"eventdavet-shopify-direct\">\n{body}\n</div>\n"
+
 ALLOWED_AUDIO_EXTENSIONS = {"mp3", "wav", "m4a", "ogg"}
 ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "webp"}
 ALLOWED_TEXT_EXTENSIONS = {"txt"}
@@ -44,6 +147,17 @@ def allowed_image(filename):
 
 def allowed_text(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_TEXT_EXTENSIONS
+
+
+@app.after_request
+def add_eventdavet_cors_headers(response):
+    """Shopify direkt sayfadan Render API'ye fetch atılabilsin diye CORS."""
+    path = request.path or ""
+    if path.startswith("/shopify/") or path.endswith("/api/katilim") or "/api/katilim" in path:
+        response.headers["Access-Control-Allow-Origin"] = os.getenv("CORS_ALLOW_ORIGIN", "*")
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    return response
 
 
 def form_to_config(form_data):
@@ -279,7 +393,7 @@ def generate():
     rel = path.relative_to(ROOT)
     public_url = f"/{path.parent.name}/"
     owner_url = f"/{path.parent.name}/katilimcilar" + (f"?pin={owner_pin}" if owner_pin else "")
-    return render_template("admin.html", themes=load_themes(), result={"path": str(rel), "url": public_url, "slug": path.parent.name, "owner_url": owner_url})
+    return render_template("admin.html", themes=load_themes(), result={"path": str(rel), "url": public_url, "slug": path.parent.name, "owner_url": owner_url, "shopify_liquid_url": f"/shopify/liquid/{path.parent.name}"})
 
 
 @app.route("/live-preview", methods=["POST"])
@@ -364,6 +478,42 @@ def owner_rsvp_reset(slug):
 
 
 
+
+# ------------------------------------------------------------
+# Shopify Direct Liquid Routes (iframe yerine doğrudan Shopify sayfası)
+# ------------------------------------------------------------
+@app.route("/shopify/liquid/<slug>", methods=["GET"])
+def shopify_direct_liquid(slug):
+    try:
+        code = build_shopify_direct_liquid(slug, request.args.get("base"))
+        return Response(code, mimetype="text/plain; charset=utf-8")
+    except Exception as exc:
+        return Response(f"EventDavet Liquid oluşturulamadı: {exc}", status=404, mimetype="text/plain; charset=utf-8")
+
+
+@app.route("/shopify/api/<slug>/guests", methods=["GET"])
+def shopify_api_guests(slug):
+    pin = request.args.get("pin", "")
+    if not check_owner_pin(slug, pin):
+        return jsonify({"ok": False, "message": "Yetkisiz erişim. PIN hatalı."}), 403
+    return jsonify({"ok": True, "slug": slug, "stats": rsvp_stats(slug), "guests": load_guests(slug)})
+
+
+@app.route("/shopify/api/<slug>/reset", methods=["POST", "OPTIONS"])
+def shopify_api_reset(slug):
+    if request.method == "OPTIONS":
+        return jsonify({"ok": True})
+    payload = request.get_json(silent=True) or {}
+    pin = request.args.get("pin", "") or payload.get("pin", "")
+    if not check_owner_pin(slug, pin):
+        return jsonify({"ok": False, "message": "Yetkisiz erişim. PIN hatalı."}), 403
+    guests = load_guests(slug)
+    for guest in guests:
+        guest["status"] = "bekliyor"
+        guest["timestamp"] = ""
+    save_rsvp_guests(slug, guests)
+    return jsonify({"ok": True, "message": "Liste sıfırlandı."})
+
 # ------------------------------------------------------------
 # EventDavet public URL routes
 # ------------------------------------------------------------
@@ -437,4 +587,4 @@ def live_assets(slug, filename):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5555, debug=True)
+    app.run(host="127.0.0.1", port=5000, debug=True)

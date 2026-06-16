@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Görselden Şablon Çıkar</title>
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,system-ui,Arial;background:#101014;color:#fff}
+    .wrap{width:min(1260px,calc(100% - 28px));margin:0 auto;padding:28px 0 70px}
+    h1{font-size:clamp(30px,5vw,56px);margin:0 0 10px;font-family:Georgia,serif}
+    .lead{color:#cfcfd8;line-height:1.65;max-width:960px;margin:0 0 18px}
+    .topbar{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 18px}
+    .layout{display:grid;grid-template-columns:.9fr 1.1fr;gap:18px;align-items:start}
+    .card{background:#181821;border:1px solid #2a2a39;border-radius:24px;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.22)}
+    h2{margin:0 0 14px;font-size:20px}
+    label{display:block;font-size:13px;color:#bfc0cb;margin:13px 0 7px;font-weight:800}
+    input,select{width:100%;border:1px solid #333447;background:#0f0f16;color:#fff;border-radius:14px;padding:12px;outline:none}
+    input:focus,select:focus{border-color:#d8b45f;box-shadow:0 0 0 3px rgba(216,180,95,.12)}
+    .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+    .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    .check{display:flex;gap:9px;align-items:center;margin:10px 0}.check input{width:auto}
+    .btn{border:0;border-radius:999px;padding:14px 18px;font-weight:950;cursor:pointer;background:linear-gradient(135deg,#ff92b8,#d8b45f);color:#1b1015;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+    .btn.secondary{background:#292a39;color:#fff}.btn.ghost{background:#11121a;color:#fff;border:1px solid #36384a}.btn.full{width:100%;margin-top:16px}
+    .mini-note{font-size:12px;color:#aaaabd;line-height:1.55;margin:10px 0 0}
+    .error{border:1px solid #9b3c3c;background:#33181b;border-radius:20px;padding:14px;color:#ffd5d5;margin-bottom:18px}
+    .success{border:1px solid #4a7b4e;background:#17351d;border-radius:20px;padding:16px;margin-bottom:18px}.success b{color:#caffd0}
+    .preview{display:grid;grid-template-columns:310px 1fr;gap:18px;align-items:start}
+    .phone{border-radius:32px;border:10px solid #08080c;background:#050507;overflow:hidden;min-height:580px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1),0 18px 50px rgba(0,0,0,.35);position:relative}
+    .mock{height:580px;display:grid;place-items:center;text-align:center;padding:28px;background:radial-gradient(circle at 50% 20%,rgba(255,146,184,.22),transparent 38%),linear-gradient(135deg,#15151d,#0d0d12)}
+    .mock b{display:block;font-size:24px;margin-bottom:8px}.mock span{color:#aaaabd;line-height:1.5}
+    .palette{display:flex;gap:9px;flex-wrap:wrap;margin:12px 0 18px}.swatch{width:56px;height:56px;border-radius:16px;border:1px solid rgba(255,255,255,.22);box-shadow:0 10px 26px rgba(0,0,0,.18)}
+    .theme-card{border:1px solid #333447;border-radius:22px;padding:16px;background:#11121a;margin-top:12px}.theme-card code{color:#ffd887;word-break:break-all}
+    .theme-demo{border-radius:26px;overflow:hidden;border:1px solid rgba(255,255,255,.18);min-height:520px;background:var(--bg);position:relative;display:grid;place-items:end center;padding:28px;background-size:cover;background-position:center}
+    .theme-demo:before{content:"";position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,0,0,.20),rgba(255,255,255,.08));pointer-events:none}.demo-card{position:relative;width:100%;border-radius:28px;padding:28px;text-align:center;background:rgba(255,255,255,.68);backdrop-filter:blur(16px);color:#2b2328;border:1px solid rgba(255,255,255,.35)}
+    .demo-card h3{font-family:Georgia,serif;font-size:44px;margin:6px 0;color:inherit}.demo-card p{line-height:1.55;color:inherit;opacity:.78}.demo-chip{display:inline-flex;border-radius:999px;padding:7px 12px;background:#d8b45f;color:#1b1015;font-weight:900;font-size:12px;letter-spacing:.12em;text-transform:uppercase}
+    .guide{display:grid;gap:10px;margin-top:14px}.guide div{background:#11121a;border:1px solid #303044;border-radius:18px;padding:13px;color:#d9d9e5;line-height:1.5}
+    @media(max-width:1050px){.layout,.preview{grid-template-columns:1fr}.phone{min-height:420px}.mock{height:420px}}
+    @media(max-width:760px){.grid,.grid3{grid-template-columns:1fr}.wrap{width:min(100% - 18px,1260px)}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Görselden Şablon Çıkar</h1>
+  <p class="lead">Buradan kendi hazırladığın PNG/JPG davetiye görselini yüklüyorsun. Sistem görselden renk paleti çıkarıyor, arka plan görselini tema dosyasına bağlıyor ve ana davetiye panelinde seçilebilir özel tema oluşturuyor.</p>
+  <div class="topbar">
+    <a class="btn secondary" href="/">Davetiye Paneli</a>
+    <a class="btn ghost" href="/template-lab">Görselden Şablon Çıkar</a>
+  </div>
+
+  {% if error %}<div class="error">Hata: {{ error }}</div>{% endif %}
+  {% if result %}
+    <div class="success">Şablon oluşturuldu: <b>{{ result.theme.name }}</b><br>Ana panelde tema listesinden <b>{{ result.theme.name }}</b> seçebilirsin.</div>
+  {% endif %}
+
+  <div class="layout">
+    <form class="card" action="/template-lab/extract" method="post" enctype="multipart/form-data">
+      <h2>1) Görseli Yükle</h2>
+      <label>PNG / JPG / WEBP tasarım görseli</label>
+      <input type="file" name="design_image" accept="image/png,image/jpeg,image/webp" required>
+
+      <label>Şablon adı</label>
+      <input name="theme_name" value="Rose Gold Özel Davetiye" placeholder="Örn: Gold Çiçekli Krem Tasarım">
+
+      <div class="grid">
+        <div>
+          <label>Dökülen obje / emoji</label>
+          <select name="particle">
+            <option value="🌸">🌸 Çiçek yaprağı</option>
+            <option value="🍂">🍂 Yaprak</option>
+            <option value="🍁">🍁 Sonbahar yaprağı</option>
+            <option value="❄️">❄️ Kar</option>
+            <option value="🌹">🌹 Gül</option>
+            <option value="✦">✦ Yıldız / ışıltı</option>
+            <option value="🎉">🎉 Konfeti</option>
+          </select>
+        </div>
+        <div>
+          <label>Köşe çiçeği</label>
+          <select name="corner_flower">
+            <option value="🌺">🌺 Tropik çiçek</option>
+            <option value="🌷">🌷 Lale</option>
+            <option value="🌹">🌹 Gül</option>
+            <option value="🌼">🌼 Papatya</option>
+            <option value="🌿">🌿 Botanik dal</option>
+            <option value="✤">✤ Luxury simge</option>
+          </select>
+        </div>
+      </div>
+
+      <h2 style="margin-top:22px">2) Görselin Şablona Dönüşme Ayarları</h2>
+      <label class="check"><input type="checkbox" name="use_image_as_background" checked> Yüklenen görsel davetiye arka planı olarak kullanılsın</label>
+      <div class="grid">
+        <div>
+          <label>Görsel yerleşimi</label>
+          <select name="image_mode">
+            <option value="cover">Cover — ekranı doldur</option>
+            <option value="contain">Contain — tamamı görünsün</option>
+            <option value="auto">Auto — orijinal boyuta yakın</option>
+          </select>
+        </div>
+        <div>
+          <label>Görsel pozisyonu</label>
+          <select name="background_position">
+            <option value="center center">Orta</option>
+            <option value="center top">Üst orta</option>
+            <option value="center bottom">Alt orta</option>
+            <option value="left center">Sol orta</option>
+            <option value="right center">Sağ orta</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid">
+        <div>
+          <label>Yazı okunurluk katmanı</label>
+          <input type="number" name="overlay_opacity" value="44" min="0" max="92">
+          <p class="mini-note">Görsel çok karışıksa 55-70 arası yap. Görsel net kalsın istiyorsan 20-35 iyi.</p>
+        </div>
+        <div>
+          <label>Kart yerleşimi</label>
+          <select name="frame_style">
+            <option value="soft">Soft cam kart</option>
+            <option value="border">Altın çerçeveli kart</option>
+            <option value="photo">Fotoğraf üstü alt kart</option>
+            <option value="minimal">Minimal sade kart</option>
+          </select>
+        </div>
+      </div>
+
+      <button class="btn full" type="submit">✨ Görselden Şablon Oluştur</button>
+      <p class="mini-note">Oluşturulan tema <b>themes.json</b> içine kaydedilir. Ana davetiye paneline dönünce tema listesinde otomatik görünür.</p>
+    </form>
+
+    <div class="card">
+      <h2>Sonuç / Ön İzleme</h2>
+      {% if result %}
+        <div class="preview">
+          <div>
+            <div class="theme-card">
+              <b>Tema anahtarı</b><br>
+              <code>{{ result.key }}</code>
+            </div>
+            <div class="theme-card">
+              <b>Çıkarılan renk paleti</b>
+              <div class="palette">
+                {% for c in result.palette %}<div class="swatch" title="{{ c }}" style="background:{{ c }}"></div>{% endfor %}
+              </div>
+              <p class="mini-note">Bu renkler otomatik olarak arka plan, vurgu, yazı ve buton renklerine dağıtıldı.</p>
+            </div>
+            <div class="theme-card">
+              <b>Ana panelde kullan</b><br>
+              <a class="btn" href="/">Davetiye Paneline Dön</a>
+            </div>
+          </div>
+          <div class="theme-demo" style="background-image:linear-gradient(135deg, color-mix(in srgb, {{ result.theme.bg }} {{ result.theme.custom_overlay_opacity }}%, transparent), color-mix(in srgb, {{ result.theme.bg2 }} {{ result.theme.custom_overlay_opacity }}%, transparent)), url('/theme-image/{{ result.theme.custom_background.split('/')[-1] }}'); background-size:{{ result.theme.custom_background_fit }}; background-position:{{ result.theme.custom_background_position }};">
+            <div class="demo-card" style="background:{{ result.theme.card }}; color:{{ result.theme.text }}; border-color:{{ result.theme.gold }}55">
+              <span class="demo-chip" style="background:{{ result.theme.gold }}">{{ result.theme.particle }} {{ result.theme.season }}</span>
+              <h3>Ayşe <span style="color:{{ result.theme.gold }}">&</span> Mert</h3>
+              <p>Bu özel tema, yüklediğin görselden çıkarılan palet ve arka planla oluşturuldu. Ana panelde seçip canlı ön izlemesini alabilirsin.</p>
+            </div>
+          </div>
+        </div>
+      {% else %}
+        <div class="phone">
+          <div class="mock"><div><b>Henüz şablon yok</b><span>Sol taraftan bir PNG/JPG yükle. Oluşturunca burada renk paleti ve mini ön izleme görünecek.</span></div></div>
+        </div>
+      {% endif %}
+
+      <h2 style="margin-top:22px">Bu panel ne yapıyor?</h2>
+      <div class="guide">
+        <div><b>1.</b> Görselden baskın renkleri çıkarır ve açık/koyu tasarım karakterini algılar.</div>
+        <div><b>2.</b> Görseli özel tema arka planı olarak kaydeder.</div>
+        <div><b>3.</b> Temayı <b>themes.json</b> dosyasına ekler; ana panelde seçilebilir hale getirir.</div>
+        <div><b>4.</b> Seçtiğin emojiye göre yaprak/çiçek/kar/ışıltı animasyonunu temaya bağlar.</div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dijital Davetiye Paneli</title>
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,system-ui,Arial;background:#101014;color:#fff}
+    .wrap{width:min(1480px,calc(100% - 28px));margin:0 auto;padding:28px 0 70px}
+    h1{font-size:clamp(30px,5vw,58px);margin:0 0 10px;font-family:Georgia,serif}
+    .lead{color:#cfcfd8;margin-bottom:22px;line-height:1.6;max-width:960px}
+    .layout{display:grid;grid-template-columns:minmax(0,1fr) 430px;gap:18px;align-items:start}
+    form{display:grid;grid-template-columns:1.08fr .92fr;gap:18px}
+    .card{background:#181821;border:1px solid #2a2a39;border-radius:24px;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.22)}
+    h2{margin:0 0 14px;font-size:20px}
+    h3{margin:18px 0 12px;font-size:15px;color:#ffe2a5}
+    label{display:block;font-size:13px;color:#bfc0cb;margin:13px 0 7px;font-weight:800}
+    input,select,textarea{width:100%;border:1px solid #333447;background:#0f0f16;color:#fff;border-radius:14px;padding:12px;outline:none}
+    textarea{min-height:86px;resize:vertical}
+    input:focus,select:focus,textarea:focus{border-color:#d8b45f;box-shadow:0 0 0 3px rgba(216,180,95,.12)}
+    .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+    .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    .check{display:flex;gap:9px;align-items:center;margin:10px 0;padding:10px 12px;border-radius:14px;background:#12131b;border:1px solid #282938}
+    .check input{width:auto;margin:0}
+    .program-row{display:grid;grid-template-columns:110px 1fr;gap:8px;margin-bottom:8px}
+    .btn{border:0;border-radius:999px;padding:14px 18px;font-weight:950;cursor:pointer;background:linear-gradient(135deg,#ff92b8,#d8b45f);color:#1b1015;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+    .btn.secondary{background:#292a39;color:#fff}.btn.ghost{background:#11121a;color:#fff;border:1px solid #36384a}.btn:disabled{opacity:.55;cursor:not-allowed}
+    .actions-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+    .result{border:1px solid #4a7b4e;background:#17351d;border-radius:20px;padding:16px;margin-bottom:18px}.result a{color:#b8ffbf;font-weight:900}
+    .preview-card{position:sticky;top:18px;min-height:620px;background:linear-gradient(180deg,#1d1d27,#121219);border:1px solid #303044;border-radius:28px;padding:16px;box-shadow:0 24px 80px rgba(0,0,0,.34)}
+    .preview-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+    .preview-title{font-size:18px;font-weight:950}.preview-sub{font-size:12px;color:#bfc0cb;margin-top:3px}
+    .phone{width:100%;height:720px;border-radius:34px;border:10px solid #08080c;background:#050507;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1),0 18px 50px rgba(0,0,0,.35);position:relative}
+    .phone:before{content:"";position:absolute;z-index:4;top:8px;left:50%;transform:translateX(-50%);width:92px;height:22px;background:#08080c;border-radius:999px;border:1px solid rgba(255,255,255,.08)}
+    .phone iframe{width:100%;height:100%;border:0;background:#fff;display:block}
+    .empty-preview{height:100%;display:grid;place-items:center;text-align:center;color:#d9d9e5;padding:34px;background:radial-gradient(circle at 50% 20%,rgba(255,146,184,.22),transparent 38%),linear-gradient(135deg,#15151d,#0d0d12)}
+    .empty-preview b{display:block;font-size:22px;margin-bottom:8px}.empty-preview span{color:#aaaabd;line-height:1.5}
+    .status{font-size:12px;color:#d8b45f;margin-top:12px;min-height:18px}
+    .preview-links{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+    .mini-note{font-size:12px;color:#aaaabd;line-height:1.5;margin:10px 0 0}
+    .subnote{font-size:12px;color:#9fa3b8;line-height:1.5;margin-top:8px}
+    .theme-box{padding:14px;border-radius:18px;background:#12131b;border:1px solid #2b2d3d}
+    @media(max-width:1180px){.layout{grid-template-columns:1fr}.preview-card{position:relative;top:0}.phone{height:680px}}
+    @media(max-width:850px){form{grid-template-columns:1fr}.grid,.grid3{grid-template-columns:1fr}.phone{height:620px}.wrap{width:min(100% - 18px,1480px)}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Dijital Davetiye Paneli</h1>
+  <p class="lead">Bu panelden direkt PNG/JPG arkaplan yükleyebilir, köşe çiçeğini emoji veya kendi PNG görselinle değiştirebilir, gelin/damat tarafı aile bilgilerini ekleyebilirsin. Kar, yaprak, köşe süsü, rüzgar, geri sayım, galeri, salon bilgileri, konum ve müzik gibi alanların hepsi tek tek açılıp kapatılır.</p>
+  {% if result %}
+    <div class="result">
+      Davetiye hazır: <b>{{ result.path }}</b><br>
+      <a href="{{ result.url }}" target="_blank">Oluşturulan davetiyeyi yeni sekmede aç</a><br>
+      {% if result.owner_url %}<a href="{{ result.owner_url }}" target="_blank">Düğün sahibi katılım panelini aç</a>{% endif %}
+    </div>
+  {% endif %}
+
+  <div class="layout">
+    <form id="inviteForm" action="/generate" method="post" enctype="multipart/form-data">
+      <div class="card">
+        <h2>Temel Bilgiler</h2>
+        <div class="grid">
+          <div><label>Gelin adı</label><input name="bride_name" value="Ayşe"></div>
+          <div><label>Damat adı</label><input name="groom_name" value="Mert"></div>
+        </div>
+        <div class="grid3">
+          <div><label>Etkinlik türü</label><input name="event_type" value="Düğün"></div>
+          <div><label>Tarih</label><input type="date" name="date" value="2026-09-12"></div>
+          <div><label>Saat</label><input type="time" name="time" value="19:30"></div>
+        </div>
+        <label>Başlık</label><input name="event_title" value="Düğün Davetiyesi">
+        <label>Mekan</label><input name="venue" value="Beyaz Köşk Davet Salonu">
+        <label>Adres</label><input name="address" value="Adana / Seyhan">
+        <label>Google Maps linki</label><input name="maps_url" value="https://maps.google.com/">
+        <label>WhatsApp / RSVP linki</label><input name="rsvp_url" value="https://wa.me/905555555555">
+        <label>Davet metni</label><textarea name="intro">Bir ömür mutluluğa evet dediğimiz bu özel günde sizleri de aramızda görmekten mutluluk duyarız.</textarea>
+        <label>Söz / romantik alıntı</label><input name="quote" value="Sevgiyle başlayan her hikaye, birlikte yazıldıkça güzelleşir.">
+        <div class="grid">
+          <div><label>Aile / ev sahibi notu</label><input name="hosts" value="Ailelerimiz adına davetlisiniz."></div>
+          <div><label>Kıyafet / konsept</label><input name="dress_code" value="Şık / Zarif"></div>
+        </div>
+        <h3>Aile Taraf Bilgileri</h3>
+        <label class="check"><input type="checkbox" name="show_family_info" checked> Gelin tarafı / damat tarafı bilgileri gösterilsin</label>
+        <div class="grid">
+          <div><label>Gelin tarafı başlığı</label><input name="bride_family_title" value="Gelin Tarafı"></div>
+          <div><label>Damat tarafı başlığı</label><input name="groom_family_title" value="Damat Tarafı"></div>
+        </div>
+        <div class="grid">
+          <div><label>Gelin tarafı</label><input name="bride_family" value="Ayşe Ailesi"></div>
+          <div><label>Damat tarafı</label><input name="groom_family" value="Mert Ailesi"></div>
+        </div>
+        <label>Hediye / ekstra not</label><input name="gift_note" value="En güzel hediyeniz yanımızda olmanızdır.">
+        <label>Slug / link adı</label><input name="slug" value="ayse-mert">
+      </div>
+
+      <div class="card">
+        <h2>Tema, Arkaplan, Müzik ve Animasyon</h2>
+        <label>Tema / mevsim</label>
+        <select name="theme">
+          {% for key,t in themes.items() %}<option value="{{ key }}" {% if key == "luxury_phone_gold" %}selected{% endif %}>{{ t.name }} — {{ t.season }}</option>{% endfor %}
+        </select>
+        <div class="subnote">Görseldeki siyah-altın iç şablon için <b>Luxury Gold Card</b> temasını seçili bırakırsan hazır gelir. Bu sürümde ekstra telefon gövdesi yok; sadece şablon kartı var.</div>
+
+        <div class="theme-box">
+          <h3 style="margin-top:0">Luxury Gold Card Şablon Ayarları</h3>
+          <div class="grid">
+            <div><label>Telefon alt başlığı</label><input name="luxury_subtitle" value="Wedding Celebration"></div>
+            <div><label>Monogram yazısı</label><input name="monogram_text" value="AB"></div>
+          </div>
+          <label>Monogram alt yazısı</label><input name="monogram_subtitle" value="Luxury Black Collection">
+          <div class="grid">
+            <div><label>Salon bilgi başlığı</label><input name="venue_title" value="Düğün Salonu Bilgileri"></div>
+            <div><label>Salon kısa bilgi</label><input name="venue_detail" value="Raffles İstanbul, Bosphorus Ballroom"></div>
+          </div>
+          <label>Salon adres / açıklama satırı</label><input name="venue_note" value="1894, Karteito, Malronk, 28093">
+          <label class="check"><input type="checkbox" name="show_photo_gallery" checked> Fotoğraf galerisi gösterilsin</label>
+          <div class="grid3">
+            <div><label>Galeri fotoğrafı 1</label><input type="file" name="gallery_image_1" accept="image/png,image/jpeg,image/jpg,image/webp"></div>
+            <div><label>Galeri fotoğrafı 2</label><input type="file" name="gallery_image_2" accept="image/png,image/jpeg,image/jpg,image/webp"></div>
+            <div><label>Galeri fotoğrafı 3</label><input type="file" name="gallery_image_3" accept="image/png,image/jpeg,image/jpg,image/webp"></div>
+          </div>
+          <label class="check"><input type="checkbox" name="show_venue_details" checked> Salon bilgileri bölümünü göster</label>
+          <div class="subnote">Bu alanlar premium şablonlarda öne çıkar. İlk fotoğraf bazı premium tasarımlarda üst kapak/hero fotoğrafı olarak da kullanılır.</div>
+        </div>
+
+        <div class="theme-box">
+          <label class="check"><input type="checkbox" name="use_design_image_background"> Arkaplana kendi PNG / JPG görselimi ekle</label>
+          <label>Arkaplan görseli</label><input type="file" name="design_image" accept="image/png,image/jpeg,image/jpg,image/webp">
+          <div class="subnote">Bu alanı kullanınca sistem yüklediğin görselden renk paleti çıkarır ve seçtiğin temayı tamamen bozmadan, görsele uyumlu özel bir görünüm oluşturur.</div>
+          <div class="grid">
+            <div><label>Özel tema adı</label><input name="design_theme_name" value="Özel Arkaplan"></div>
+            <div><label>Çerçeve stili</label><select name="design_frame_style"><option value="soft">Soft</option><option value="border">Altın çerçeve</option><option value="photo">Fotoğraf üstü kart</option><option value="minimal">Minimal</option></select></div>
+          </div>
+          <div class="grid3">
+            <div><label>Yerleşim</label><select name="design_image_mode"><option value="cover">Cover</option><option value="contain">Contain</option><option value="auto">Auto</option></select></div>
+            <div><label>Pozisyon</label><select name="design_background_position"><option value="center center">Merkez</option><option value="top center">Üst</option><option value="bottom center">Alt</option><option value="left center">Sol</option><option value="right center">Sağ</option></select></div>
+            <div><label>Okunurluk katmanı</label><input type="number" name="design_overlay_opacity" value="44" min="0" max="92"></div>
+          </div>
+        </div>
+
+        <h3>Müzik</h3>
+        <label>Müzik dosyası yükle MP3 / WAV / M4A / OGG</label><input type="file" name="music_upload" accept="audio/*">
+        <label class="check"><input type="checkbox" name="use_sample_music" checked> Örnek romantik müziği kullan</label>
+        <label class="check"><input type="checkbox" name="music_enabled" checked> Müzik aktif</label>
+        <label class="check"><input type="checkbox" name="music_loop" checked> Müzik loop dönsün</label>
+        <label>Müzik buton yazısı</label><input name="music_button_text" value="Müziği Aç">
+
+        <h3>Animasyon Ayarları</h3>
+        <div class="grid">
+          <label class="check"><input type="checkbox" name="falling_enabled" checked> Dökülme animasyonu açık</label>
+          <label class="check"><input type="checkbox" name="show_corner_flower" checked> Köşe çiçeği açık</label>
+          <label class="check"><input type="checkbox" name="ambient_wind_enabled" checked> Hafif rüzgar çizgileri açık</label>
+          <label class="check"><input type="checkbox" name="show_countdown" checked> Geri sayım açık</label>
+        </div>
+        <div class="grid">
+          <div><label>Dökülen obje</label><select name="falling_type"><option value="theme">Temaya göre</option><option value="petals">Çiçek yaprağı</option><option value="leaves">Yaprak</option><option value="maple">Akçaağaç</option><option value="snow">Kar</option><option value="stars">Yıldız</option><option value="rose">Gül</option><option value="confetti">Konfeti</option></select></div>
+          <div><label>Dokunma efekti</label><select name="tap_effect"><option value="petal_burst">Sadece köşe çiçeği</option><option value="page_burst">Boş alana tıklayınca da çalışsın</option></select></div>
+        </div>
+        <div class="theme-box">
+          <label class="check"><input type="checkbox" name="falling_particle_image_enabled"> Dökülen emoji yerine kendi PNG/JPG/WEBP görselimi kullan</label>
+          <label>Dökülecek obje görseli</label><input type="file" name="falling_particle_image" accept="image/png,image/jpeg,image/jpg,image/webp">
+          <div class="grid">
+            <div><label>Dökülen PNG boyutu</label><input type="number" name="falling_particle_size" value="34" min="12" max="120"></div>
+            <div><label>Öneri</label><input value="Altın yaprak, gül yaprağı, yüzük, kalp, logo PNG" readonly></div>
+          </div>
+          <div class="subnote">Buraya kendi yaprak / çiçek / gül / yüzük / logo PNG görselini attığında, ekrandan düşen objeler ve dokunma patlama efekti bu görselle çalışır.</div>
+        </div>
+        <div class="grid3">
+          <div><label>Yoğunluk</label><input type="number" name="falling_density" value="28" min="0" max="90"></div>
+          <div><label>Hız</label><input type="number" name="falling_speed" value="13" min="5" max="30"></div>
+          <div><label>Rüzgar</label><input type="number" name="wind_strength" value="42" min="0" max="100"></div>
+        </div>
+        <div class="grid3">
+          <div><label>Patlama adedi</label><input type="number" name="burst_count" value="34" min="0" max="90"></div>
+          <div><label>Cam efekti</label><input type="number" name="glass_intensity" value="68" min="0" max="100"></div>
+          <div><label>Köşe yuvarlaklığı</label><input type="number" name="roundness" value="34" min="0" max="60"></div>
+        </div>
+        <div class="grid">
+          <div><label>Çiçek pozisyonu</label><select name="corner_flower_position"><option value="right-bottom">Sağ alt</option><option value="left-bottom">Sol alt</option><option value="right-top">Sağ üst</option><option value="left-top">Sol üst</option></select></div>
+          <div><label>Çiçek üstü yazı</label><input name="corner_flower_text" value="Dokun"></div>
+        </div>
+        <div class="theme-box">
+          <label>Emoji çiçek / ikon</label><input name="corner_flower_emoji" value="🌺" placeholder="🌺, 🌸, 💍, 🤍 gibi">
+          <label class="check"><input type="checkbox" name="corner_flower_image_enabled"> Emoji yerine kendi PNG/JPG köşe süsümü kullan</label>
+          <label>Köşe süs görseli PNG / JPG / WEBP</label><input type="file" name="corner_flower_image" accept="image/png,image/jpeg,image/jpg,image/webp">
+          <div class="subnote">Buraya kendi çiçek, yüzük, monogram, logo veya süs PNG görselini atabilirsin. Aktif edersen sabit emoji yerine bu görsel görünür.</div>
+        </div>
+
+        <h3>Göster / Gizle</h3>
+        <div class="grid">
+          <label class="check"><input type="checkbox" name="show_program" checked> Program akışı</label>
+          <label class="check"><input type="checkbox" name="show_map_button" checked> Konum butonu</label>
+          <label class="check"><input type="checkbox" name="show_calendar_button" checked> Takvime ekle</label>
+          <label class="check"><input type="checkbox" name="show_dress_code" checked> Kıyafet notu</label>
+          <label class="check"><input type="checkbox" name="show_gift_note" checked> Hediye notu</label>
+        </div>
+      </div>
+
+      <div class="card" style="grid-column:1/-1">
+        <h2>Katılım Bildirme Sistemi MongoDB</h2>
+        <div class="grid">
+          <label class="check"><input type="checkbox" name="internal_rsvp_enabled" checked> Katılım bildirimi site içinde çalışsın</label>
+          <label class="check"><input type="checkbox" name="show_rsvp_button" checked> Katılım bildir butonu gösterilsin</label>
+        </div>
+        <label>Düğün sahibi panel PIN kodu</label>
+        <input name="owner_pin" value="123456" placeholder="Örn: 123456">
+        <p class="subnote">Katılımcı paneli için önerilir. Örnek: <code>/ayse-mert/katilimcilar?pin=123456</code>. PIN davetiye HTML içine gömülmez.</p>
+        <div class="grid">
+          <div>
+            <label>Davetli listesi TXT yükle</label>
+            <input type="file" name="guest_list_file" accept=".txt,text/plain">
+            <p class="subnote">TXT sadece içe aktarma içindir. Her satıra bir davetli yaz: <b>Ad Soyad</b>. Sistem katılım durumlarını MongoDB içinde tutar.</p>
+          </div>
+          <div>
+            <label>Davetli listesini buraya da yazabilirsin</label>
+            <textarea name="guest_names_text" placeholder="Ayşe Demir&#10;Mehmet Yılmaz&#10;Zeynep Kaya">Ayşe Demir
+Mehmet Yılmaz
+Zeynep Kaya
+Ali Çelik</textarea>
+          </div>
+        </div>
+        <p class="mini-note">Misafir “Katılım Bildir”e basınca ad-soyad yazar. İsim MongoDB davetli listesinde varsa durum <b>katıldı</b> olarak güncellenir. Düğün sahibi panelinden kimlerin katıldığını görebilir ve listeyi indirebilir.</p>
+      </div>
+
+      <div class="card" style="grid-column:1/-1">
+        <h2>Program Akışı</h2>
+        <div class="grid">
+          <div class="program-row"><input name="program_clock[]" value="19:30"><input name="program_title[]" value="Karşılama"></div>
+          <div class="program-row"><input name="program_clock[]" value="20:15"><input name="program_title[]" value="Nikah Merasimi"></div>
+          <div class="program-row"><input name="program_clock[]" value="21:00"><input name="program_title[]" value="İlk Dans"></div>
+          <div class="program-row"><input name="program_clock[]" value="21:30"><input name="program_title[]" value="Eğlence"></div>
+        </div>
+        <label>Ek not</label><textarea name="extra_note" placeholder="Örneğin: Salon girişinde QR kod ile masa bilgisi alınabilir."></textarea>
+        <div class="actions-row">
+          <button class="btn" type="button" id="previewBtn">👁 Canlı Ön İzle</button>
+          <button class="btn secondary" type="submit">✅ Davetiye Oluştur</button>
+          <button class="btn ghost" type="reset">Formu Sıfırla</button>
+        </div>
+        <p class="mini-note">Not: Yaprak / kar / konfeti / köşe çiçeği gibi özelliklerin hepsini tek tek açıp kapatabilirsin. Her müşteri için hepsini kullanmak zorunda değilsin.</p>
+      </div>
+    </form>
+
+    <aside class="preview-card">
+      <div class="preview-top">
+        <div>
+          <div class="preview-title">Canlı Ön İzleme</div>
+          <div class="preview-sub">Telefon görünümü gibi kontrol et</div>
+        </div>
+        <button class="btn ghost" type="button" id="refreshPreviewBtn">Yenile</button>
+      </div>
+      <div class="phone" id="phoneBox">
+        <div class="empty-preview" id="emptyPreview"><div><b>Henüz ön izleme yok</b><span>Soldaki bilgileri düzenle ve “Canlı Ön İzle” butonuna bas. Arkaplan görseli kullanırsan burada direkt etkisini görürsün.</span></div></div>
+        <iframe id="previewFrame" title="Davetiye ön izleme" style="display:none"></iframe>
+      </div>
+      <div class="status" id="previewStatus"></div>
+      <div class="preview-links" id="previewLinks" style="display:none">
+        <a class="btn secondary" href="#" target="_blank" id="openPreviewLink">Yeni sekmede aç</a>
+      </div>
+      <p class="mini-note">Müzik mobilde otomatik başlamayabilir; davetiyedeki “Müziği Aç” butonuyla test edilir.</p>
+    </aside>
+  </div>
+</div>
+
+<script>
+const form = document.getElementById('inviteForm');
+const previewBtn = document.getElementById('previewBtn');
+const refreshBtn = document.getElementById('refreshPreviewBtn');
+const frame = document.getElementById('previewFrame');
+const emptyPreview = document.getElementById('emptyPreview');
+const statusBox = document.getElementById('previewStatus');
+const openLink = document.getElementById('openPreviewLink');
+const previewLinks = document.getElementById('previewLinks');
+let previewTimer = null;
+let previewBusy = false;
+
+async function updatePreview(reason='manual'){
+  if(previewBusy) return;
+  previewBusy = true;
+  previewBtn.disabled = true;
+  refreshBtn.disabled = true;
+  statusBox.textContent = 'Ön izleme hazırlanıyor...';
+  try{
+    const fd = new FormData(form);
+    const res = await fetch('/live-preview', {method:'POST', body:fd});
+    const data = await res.json();
+    if(!data.ok) throw new Error('Ön izleme oluşturulamadı');
+    frame.src = data.url;
+    frame.style.display = 'block';
+    emptyPreview.style.display = 'none';
+    openLink.href = data.url;
+    previewLinks.style.display = 'flex';
+    statusBox.textContent = reason === 'auto' ? 'Otomatik ön izleme güncellendi.' : 'Ön izleme hazır.';
+  }catch(err){
+    statusBox.textContent = 'Hata: ' + err.message;
+  }finally{
+    previewBusy = false;
+    previewBtn.disabled = false;
+    refreshBtn.disabled = false;
+  }
+}
+
+function schedulePreview(){
+  clearTimeout(previewTimer);
+  previewTimer = setTimeout(()=>updatePreview('auto'), 900);
+}
+
+previewBtn.addEventListener('click', ()=>updatePreview('manual'));
+refreshBtn.addEventListener('click', ()=>updatePreview('manual'));
+form.querySelectorAll('input:not([type=file]), textarea, select').forEach(el=>{
+  el.addEventListener('input', schedulePreview);
+  el.addEventListener('change', schedulePreview);
+});
+form.querySelectorAll('input[type=file]').forEach(el=>el.addEventListener('change', ()=>updatePreview('manual')));
+window.addEventListener('load', ()=>setTimeout(()=>updatePreview('auto'), 350));
+</script>
+</body>
+</html>

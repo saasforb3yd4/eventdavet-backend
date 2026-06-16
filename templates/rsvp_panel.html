@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Katılım Paneli</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#101014;color:#fff;font-family:Inter,system-ui,Arial}.wrap{width:min(1180px,calc(100% - 26px));margin:0 auto;padding:30px 0 70px}h1{font-family:Georgia,serif;font-size:clamp(32px,5vw,58px);margin:0 0 10px}.lead{color:#bfc0cb;line-height:1.55;margin-bottom:22px}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:18px 0}.card{background:#181821;border:1px solid #2a2a39;border-radius:24px;padding:18px;box-shadow:0 20px 60px rgba(0,0,0,.22)}.stat b{display:block;font-size:38px;color:#d8b45f}.stat span{color:#cfd0da;font-weight:800}a,.btn{color:#111;background:linear-gradient(135deg,#ff92b8,#d8b45f);border:0;border-radius:999px;padding:12px 16px;font-weight:950;text-decoration:none;display:inline-flex;gap:8px;align-items:center;cursor:pointer}.btn.secondary{background:#292a39;color:#fff}.btn.danger{background:#4a2020;color:#ffd0d0}.actions{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}table{width:100%;border-collapse:collapse;overflow:hidden;border-radius:18px;background:#15151f}th,td{text-align:left;padding:13px;border-bottom:1px solid #2a2a39}th{color:#d8b45f;font-size:12px;text-transform:uppercase;letter-spacing:.08em;background:#101018}.ok{color:#91ffad;font-weight:950}.wait{color:#ffe3a6;font-weight:950}.list{display:grid;gap:10px}.list a{justify-content:space-between;color:#fff;background:#1a1a24;border:1px solid #2a2a39;border-radius:18px}.muted{color:#aaaabd;font-size:13px}.search,input{width:100%;border:1px solid #333447;background:#0f0f16;color:#fff;border-radius:14px;padding:13px;outline:none;margin:14px 0}.lock{max-width:520px;margin:60px auto}.pill{display:inline-flex;padding:8px 12px;border-radius:999px;background:#292a39;color:#d8b45f;font-weight:900;margin-bottom:14px}@media(max-width:760px){.cards{grid-template-columns:1fr}th:nth-child(3),td:nth-child(3){display:none}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  {% if lists is not none %}
+    <h1>Katılım Panelleri</h1>
+    <p class="lead">Oluşturulan davetiyelerin MongoDB katılım listeleri burada görünür.</p>
+    {% if mongo_available is defined and not mongo_available %}<div class="card">MongoDB bağlantısı yok. <code>.env</code> dosyasına <code>MONGODB_URI</code> ekle.</div>{% endif %}
+    <div class="list">
+      {% for item in lists %}
+      <a href="/{{ item.slug }}/katilimcilar"><span>{{ item.slug }}</span><span>{{ item.attending }}/{{ item.total }} katıldı</span></a>
+      {% else %}
+      <div class="card">Henüz katılım listesi yok.</div>
+      {% endfor %}
+    </div>
+  {% elif locked %}
+    <div class="card lock">
+      <span class="pill">Güvenli Panel</span>
+      <h1>PIN gerekli</h1>
+      <p class="lead"><b>{{ slug }}</b> katılımcı listesini görüntülemek için düğün sahibi PIN kodunu gir.</p>
+      <form method="get">
+        <input name="pin" placeholder="PIN kodu" autocomplete="off">
+        <button class="btn" type="submit">Panele Gir</button>
+      </form>
+    </div>
+  {% else %}
+    <h1>Katılım Paneli</h1>
+    <p class="lead"><b>{{ slug }}</b> davetiyesi için MongoDB tabanlı katılım listesi. Misafir davetiyede ad-soyad yazınca burada “katıldı” olarak görünür.</p>
+    <div class="cards">
+      <div class="card stat"><b>{{ stats.total }}</b><span>Toplam Davetli</span></div>
+      <div class="card stat"><b>{{ stats.attending }}</b><span>Katıldı</span></div>
+      <div class="card stat"><b>{{ stats.pending }}</b><span>Bekliyor</span></div>
+    </div>
+    <div class="actions">
+      <a href="/{{ slug }}/katilimcilar/download{% if pin %}?pin={{ pin }}{% endif %}">Listeyi İndir</a>
+      <a class="btn secondary" href="/{{ slug }}/" target="_blank">Davetiyeyi Aç</a>
+      <button class="btn danger" id="resetBtn">Listeyi Sıfırla</button>
+      <a class="btn secondary" href="/owner/rsvp">Tüm Listeler</a>
+    </div>
+    <input class="search" id="search" placeholder="İsim ara...">
+    <div class="card" style="padding:0;overflow:hidden">
+      <table id="guestTable">
+        <thead><tr><th>Ad Soyad</th><th>Durum</th><th>Katılım Zamanı</th></tr></thead>
+        <tbody>
+        {% for guest in guests %}
+          <tr><td>{{ guest.name }}</td><td class="{{ 'ok' if guest.status == 'katıldı' else 'wait' }}">{{ guest.status }}</td><td>{{ guest.timestamp }}</td></tr>
+        {% else %}
+          <tr><td colspan="3">Davetli listesi boş.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="muted">Kayıtlar MongoDB Atlas üzerinde tutulur. PIN linkini sadece düğün sahibiyle paylaş.</p>
+  {% endif %}
+</div>
+<script>
+const OWNER_PIN = {{ (pin or '')|tojson if pin is defined else '""' }};
+const search=document.getElementById('search');
+search?.addEventListener('input',()=>{const q=search.value.toLowerCase();document.querySelectorAll('#guestTable tbody tr').forEach(tr=>{tr.style.display=tr.innerText.toLowerCase().includes(q)?'':'none';});});
+document.getElementById('resetBtn')?.addEventListener('click',async()=>{if(!confirm('Katıldı durumları sıfırlansın mı?')) return; const res=await fetch(location.pathname+'/reset'+(OWNER_PIN?'?pin='+encodeURIComponent(OWNER_PIN):''),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pin:OWNER_PIN})}); if(res.ok) location.reload(); else alert('Yetkisiz erişim veya hata oluştu.');});
+</script>
+</body>
+</html>

@@ -4,6 +4,7 @@ import os
 from flask import Flask, render_template, request, send_from_directory, jsonify, Response
 from werkzeug.utils import secure_filename
 from invitation_engine import render_invitation, load_themes, ROOT, slugify
+from flask import Flask, render_template, request, send_from_directory, jsonify, Response
 from template_extractor import (
     save_custom_theme,
     CUSTOM_ASSET_DIR,
@@ -15,6 +16,25 @@ from mongo_rsvp_manager import (
 )
 
 app = Flask(__name__)
+import os
+
+CORS_ALLOW_ORIGIN = os.getenv("CORS_ALLOW_ORIGIN", "*")
+
+@app.after_request
+def add_cors_headers(response):
+    origin = request.headers.get("Origin")
+
+    if CORS_ALLOW_ORIGIN == "*":
+        response.headers["Access-Control-Allow-Origin"] = "*"
+    else:
+        allowed_origins = [x.strip() for x in CORS_ALLOW_ORIGIN.split(",") if x.strip()]
+        if origin in allowed_origins:
+            response.headers["Access-Control-Allow-Origin"] = origin
+
+    response.headers["Vary"] = "Origin"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    return response
 app.config["UPLOAD_FOLDER"] = str(ROOT / "uploads")
 Path(app.config["UPLOAD_FOLDER"]).mkdir(parents=True, exist_ok=True)
 

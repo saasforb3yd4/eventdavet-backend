@@ -4,7 +4,6 @@ import os
 from flask import Flask, render_template, request, send_from_directory, jsonify, Response
 from werkzeug.utils import secure_filename
 from invitation_engine import render_invitation, load_themes, ROOT, slugify
-from flask import Flask, render_template, request, send_from_directory, jsonify, Response
 from template_extractor import (
     save_custom_theme,
     CUSTOM_ASSET_DIR,
@@ -14,27 +13,11 @@ from mongo_rsvp_manager import (
     initialize_guest_list, mark_attending, load_guests, stats as rsvp_stats,
     available_lists, save_guests as save_rsvp_guests, check_owner_pin, export_text, mongo_available, get_db,
 )
+from mongo_invitation_store import (
+    store_invitation_bundle, ensure_invitation_materialized, invitation_bundle_status,
+)
 
 app = Flask(__name__)
-import os
-
-CORS_ALLOW_ORIGIN = os.getenv("CORS_ALLOW_ORIGIN", "*")
-
-@app.after_request
-def add_cors_headers(response):
-    origin = request.headers.get("Origin")
-
-    if CORS_ALLOW_ORIGIN == "*":
-        response.headers["Access-Control-Allow-Origin"] = "*"
-    else:
-        allowed_origins = [x.strip() for x in CORS_ALLOW_ORIGIN.split(",") if x.strip()]
-        if origin in allowed_origins:
-            response.headers["Access-Control-Allow-Origin"] = origin
-
-    response.headers["Vary"] = "Origin"
-    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
-    return response
 app.config["UPLOAD_FOLDER"] = str(ROOT / "uploads")
 Path(app.config["UPLOAD_FOLDER"]).mkdir(parents=True, exist_ok=True)
 
@@ -68,10 +51,8 @@ def build_shopify_direct_liquid(slug, backend_base=None):
     """Generated davetiyeyi Shopify Custom Liquid içine yapıştırılabilir direkt HTML'e çevirir."""
     slug = slugify(slug)
     backend_base = (backend_base or get_public_base_url()).rstrip("/")
-    html_path = ROOT / "dist" / slug / "index.html"
-    if not html_path.exists():
-        raise FileNotFoundError(f"{slug} için dist/{slug}/index.html bulunamadı. Önce davetiyeyi oluştur.")
-
+    invite_dir = ensure_invitation_materialized(slug)
+    html_path = invite_dir / "index.html"
     html = html_path.read_text(encoding="utf-8")
     head = _extract_between(html, "<head>", "</head>")
     body = _extract_between(html, "<body>", "</body>")
@@ -171,12 +152,20 @@ def allowed_text(filename):
 
 @app.after_request
 def add_eventdavet_cors_headers(response):
-    """Shopify direkt sayfadan Render API'ye fetch atılabilsin diye CORS."""
-    path = request.path or ""
-    if path.startswith("/shopify/") or path.endswith("/api/katilim") or "/api/katilim" in path:
-        response.headers["Access-Control-Allow-Origin"] = os.getenv("CORS_ALLOW_ORIGIN", "*")
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type"
-        response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    """Shopify sayfasının Render HTML/API uçlarına erişebilmesi için CORS."""
+    allowed_raw = (os.getenv("CORS_ALLOW_ORIGIN") or "*").strip()
+    request_origin = (request.headers.get("Origin") or "").strip()
+
+    if allowed_raw == "*":
+        response.headers["Access-Control-Allow-Origin"] = "*"
+    else:
+        allowed = {item.strip().rstrip("/") for item in allowed_raw.split(",") if item.strip()}
+        if request_origin.rstrip("/") in allowed:
+            response.headers["Access-Control-Allow-Origin"] = request_origin
+
+    response.headers["Vary"] = "Origin"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     return response
 
 
@@ -363,6 +352,14 @@ def debug_mongo():
         }), 500
 
 
+@app.route("/debug/storage/<slug>", methods=["GET"])
+def debug_storage(slug):
+    try:
+        return jsonify({"ok": True, **invitation_bundle_status(slug)})
+    except Exception as exc:
+        return jsonify({"ok": False, "slug": slugify(slug), "error": str(exc)}), 500
+
+
 @app.route("/template-lab", methods=["GET"])
 def template_lab():
     return render_template("template_lab.html", themes=load_themes(), result=None, error=None)
@@ -410,10 +407,11 @@ def generate():
         music_path=music_path,
         theme_override=theme_override,
     )
+    bundle_info = store_invitation_bundle(path.parent.name, path.parent)
     rel = path.relative_to(ROOT)
     public_url = f"/{path.parent.name}/"
     owner_url = f"/{path.parent.name}/katilimcilar" + (f"?pin={owner_pin}" if owner_pin else "")
-    return render_template("admin.html", themes=load_themes(), result={"path": str(rel), "url": public_url, "slug": path.parent.name, "owner_url": owner_url, "shopify_liquid_url": f"/shopify/liquid/{path.parent.name}"})
+    return render_template("admin.html", themes=load_themes(), result={"path": str(rel), "url": public_url, "slug": path.parent.name, "owner_url": owner_url, "shopify_liquid_url": f"/shopify/liquid/{path.parent.name}", "bundle_saved": True, "bundle_size_bytes": bundle_info.get("size_bytes", 0)})
 
 
 @app.route("/live-preview", methods=["POST"])
@@ -541,7 +539,11 @@ def shopify_api_reset(slug):
 # şeklinde çalışacak şekilde hazırlandı.
 @app.route("/<slug>/", methods=["GET"])
 def public_invitation(slug):
-    return send_from_directory(ROOT / "dist" / slug, "index.html")
+    try:
+        invite_dir = ensure_invitation_materialized(slug)
+        return send_from_directory(invite_dir, "index.html")
+    except FileNotFoundError as exc:
+        return Response(str(exc), status=404, mimetype="text/plain; charset=utf-8")
 
 
 @app.route("/<slug>/katilimcilar", methods=["GET"])
@@ -582,18 +584,24 @@ def public_api_rsvp(slug):
 
 @app.route("/<slug>/<path:filename>", methods=["GET"])
 def public_invitation_assets(slug, filename):
-    # Davetiye içindeki assets/music, assets/gallery gibi dosyalar için.
-    return send_from_directory(ROOT / "dist" / slug, filename)
+    # Render yeniden başlasa bile paket MongoDB'den otomatik geri yüklenir.
+    try:
+        invite_dir = ensure_invitation_materialized(slug)
+        return send_from_directory(invite_dir, filename)
+    except FileNotFoundError as exc:
+        return Response(str(exc), status=404, mimetype="text/plain; charset=utf-8")
 
 
 @app.route("/preview/<slug>/")
 def preview(slug):
-    return send_from_directory(ROOT / "dist" / slug, "index.html")
+    invite_dir = ensure_invitation_materialized(slug)
+    return send_from_directory(invite_dir, "index.html")
 
 
 @app.route("/preview/<slug>/<path:filename>")
 def preview_assets(slug, filename):
-    return send_from_directory(ROOT / "dist" / slug, filename)
+    invite_dir = ensure_invitation_materialized(slug)
+    return send_from_directory(invite_dir, filename)
 
 
 @app.route("/live/<slug>/")

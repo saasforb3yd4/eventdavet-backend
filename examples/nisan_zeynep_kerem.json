@@ -1,0 +1,19 @@
+{
+  "bride_name": "Zeynep",
+  "groom_name": "Kerem",
+  "event_title": "Nişan Davetiyesi",
+  "event_type": "Nişan",
+  "date": "2026-08-23",
+  "time": "20:00",
+  "venue": "Lavanta Garden",
+  "address": "İzmir / Bornova",
+  "maps_url": "https://maps.google.com/",
+  "rsvp_url": "https://wa.me/905555555555",
+  "intro": "Nişan merasimimizde siz değerli dostlarımızı aramızda görmekten mutluluk duyarız.",
+  "quote": "Birlikte atılan ilk adım, en güzel hikayenin başlangıcıdır.",
+  "slug": "zeynep-kerem",
+  "theme": "yaz_lavanta",
+  "falling_type": "lavender",
+  "corner_flower_position": "left-bottom",
+  "music_file": "static/music/sample-romantik-chime.wav"
+}

@@ -1,0 +1,34 @@
+{%- comment -%}
+Shrine / Shopify dijital davetiye ürün formu için line item properties.
+Bunu mümkünse ürün formunun içine Custom Liquid olarak ekle. Form dışında kalırsa siparişe yazmayabilir.
+Müzik dosyası yükletmek istersen product form enctype="multipart/form-data" desteklemeli.
+{%- endcomment -%}
+<style>
+  .krb-invite-box{border:1px solid rgba(0,0,0,.12);border-radius:18px;padding:18px;margin:18px 0;background:#fffaf7;box-shadow:0 10px 28px rgba(0,0,0,.06)}
+  .krb-invite-box h3{margin:0 0 12px;font-size:20px}.krb-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.krb-field{display:flex;flex-direction:column;gap:6px}.krb-field label{font-size:12px;font-weight:800;opacity:.75}.krb-field input,.krb-field select,.krb-field textarea{border:1px solid rgba(0,0,0,.14);border-radius:12px;padding:11px;background:#fff}.krb-full{grid-column:1/-1}@media(max-width:640px){.krb-grid{grid-template-columns:1fr}.krb-full{grid-column:auto}}
+</style>
+<div class="krb-invite-box">
+  <h3>Davetiye Bilgileri</h3>
+  <div class="krb-grid">
+    <div class="krb-field"><label>Gelin adı</label><input name="properties[Gelin Adı]" required></div>
+    <div class="krb-field"><label>Damat adı</label><input name="properties[Damat Adı]" required></div>
+    <div class="krb-field"><label>Etkinlik türü</label><select name="properties[Etkinlik Türü]"><option>Düğün</option><option>Nişan</option><option>Kına</option><option>Nikah</option><option>Mezuniyet</option><option>Özel Gün</option></select></div>
+    <div class="krb-field"><label>Tema / mevsim</label><select name="properties[Tema]"><option>İlkbahar Çiçek</option><option>Yaz Lavanta</option><option>Sonbahar Akçaağaç</option><option>Kış Kar</option><option>Royal Rose</option><option>Black Gold</option><option>Botanik Ivory</option></select></div>
+    <div class="krb-field"><label>Tarih</label><input type="date" name="properties[Tarih]" required></div>
+    <div class="krb-field"><label>Saat</label><input type="time" name="properties[Saat]" required></div>
+    <div class="krb-field krb-full"><label>Mekan adı</label><input name="properties[Mekan]"></div>
+    <div class="krb-field krb-full"><label>Adres</label><textarea name="properties[Adres]"></textarea></div>
+    <div class="krb-field krb-full"><label>Google Maps linki</label><input name="properties[Konum Linki]" placeholder="https://maps.google.com/..."></div>
+    <div class="krb-field"><label>WhatsApp katılım linki</label><input name="properties[WhatsApp RSVP]" placeholder="https://wa.me/90..."></div>
+    <div class="krb-field"><label>Müzik tercihi</label><input name="properties[Müzik Tercihi]" placeholder="Kendi müziğim / romantik / hareketli"></div>
+    <div class="krb-field krb-full"><label>Müzik dosyası</label><input type="file" name="properties[Müzik Dosyası]" accept="audio/*"></div>
+    <div class="krb-field krb-full"><label>Arkaplan görseli PNG/JPG</label><input type="file" name="properties[Arkaplan Görseli]" accept="image/png,image/jpeg,image/webp"></div>
+    <div class="krb-field"><label>Gelin tarafı</label><input name="properties[Gelin Tarafı]" placeholder="Örn: Karabulut Ailesi"></div>
+    <div class="krb-field"><label>Damat tarafı</label><input name="properties[Damat Tarafı]" placeholder="Örn: Yılmaz Ailesi"></div>
+    <div class="krb-field"><label>Dökülme efekti</label><select name="properties[Animasyon]"><option>Temaya göre</option><option>Çiçek yaprakları</option><option>Yaprak</option><option>Kar</option><option>Yıldız</option><option>Konfeti</option><option>Kapalı</option></select></div>
+    <div class="krb-field"><label>Köşe süsü</label><select name="properties[Köşe Süsü]"><option>Açık</option><option>Kapalı</option><option>Sağ alt</option><option>Sol alt</option><option>Sağ üst</option><option>Sol üst</option></select></div>
+    <div class="krb-field"><label>Köşe süs emojisi</label><input name="properties[Köşe Süs Emojisi]" placeholder="🌺 / 💍 / 🤍"></div>
+    <div class="krb-field krb-full"><label>Köşe süs PNG/JPG</label><input type="file" name="properties[Köşe Süs Görseli]" accept="image/png,image/jpeg,image/webp"></div>
+    <div class="krb-field krb-full"><label>Davet metni / özel not</label><textarea name="properties[Davet Metni]"></textarea></div>
+  </div>
+</div>

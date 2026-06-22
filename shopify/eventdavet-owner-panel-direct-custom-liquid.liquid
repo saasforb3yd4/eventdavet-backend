@@ -1,0 +1,54 @@
+{% comment %}
+EventDavet Katılımcı Paneli - Shopify Direct Custom Liquid
+Iframe kullanmaz. Slug, PIN ve backend adresini değiştirip Custom Liquid içine yapıştır.
+{% endcomment %}
+
+<div id="eventdavet-owner-panel" style="max-width:1100px;margin:0 auto;padding:28px 16px;font-family:Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif;color:#2f241e;">
+  <div style="border:1px solid rgba(190,145,80,.25);border-radius:28px;background:#fffaf3;box-shadow:0 20px 60px rgba(80,50,20,.10);padding:24px;">
+    <h1 style="margin:0 0 8px;font-family:Georgia,serif;font-weight:500;font-size:34px;">Katılımcı Listesi</h1>
+    <p id="ed-status" style="margin:0 0 18px;color:#7b6a57;">Yükleniyor...</p>
+    <div id="ed-stats" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:18px;"></div>
+    <div style="overflow:auto;border-radius:18px;border:1px solid #ead8bd;background:white;">
+      <table style="width:100%;border-collapse:collapse;min-width:620px;">
+        <thead style="background:#f7ecd9;">
+          <tr>
+            <th style="text-align:left;padding:12px;">Ad Soyad</th>
+            <th style="text-align:left;padding:12px;">Durum</th>
+            <th style="text-align:left;padding:12px;">Tarih</th>
+          </tr>
+        </thead>
+        <tbody id="ed-guests"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const BACKEND = "https://eventdavet-backend.onrender.com"; // kendi Render linkin / backend.eventdavet.com
+  const SLUG = "ayse-mert";
+  const PIN = "123456";
+  const statusEl = document.getElementById("ed-status");
+  const statsEl = document.getElementById("ed-stats");
+  const guestsEl = document.getElementById("ed-guests");
+
+  function card(label, value){
+    return `<div style="border:1px solid #ead8bd;border-radius:18px;background:white;padding:16px;"><b style="display:block;color:#a77933;font-size:12px;letter-spacing:.12em;text-transform:uppercase;">${label}</b><strong style="font-size:28px;">${value}</strong></div>`;
+  }
+
+  async function loadGuests(){
+    try{
+      const res = await fetch(`${BACKEND}/shopify/api/${SLUG}/guests?pin=${encodeURIComponent(PIN)}`);
+      const data = await res.json();
+      if(!data.ok) throw new Error(data.message || "Liste alınamadı");
+      const st = data.stats || {};
+      statusEl.textContent = "Liste başarıyla yüklendi.";
+      statsEl.innerHTML = card("Toplam", st.total || 0) + card("Katıldı", st.attending || 0) + card("Bekliyor", st.pending || 0);
+      guestsEl.innerHTML = (data.guests || []).map(g => `<tr><td style="padding:12px;border-top:1px solid #f1e3ce;"><b>${g.full_name || g.name || ""}</b></td><td style="padding:12px;border-top:1px solid #f1e3ce;">${g.status || "bekliyor"}</td><td style="padding:12px;border-top:1px solid #f1e3ce;color:#7b6a57;">${g.timestamp || "-"}</td></tr>`).join("");
+    }catch(err){
+      statusEl.textContent = "Hata: " + err.message;
+    }
+  }
+  loadGuests();
+})();
+</script>

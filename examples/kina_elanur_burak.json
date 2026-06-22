@@ -1,0 +1,19 @@
+{
+  "bride_name": "Elanur",
+  "groom_name": "Burak",
+  "event_title": "Kına Gecesi",
+  "event_type": "Kına",
+  "date": "2026-10-03",
+  "time": "19:00",
+  "venue": "Altın Salon",
+  "address": "Osmaniye / Kadirli",
+  "maps_url": "https://maps.google.com/",
+  "rsvp_url": "https://wa.me/905555555555",
+  "intro": "Kına gecemizde eğlencemize ortak olmanız bizi çok mutlu eder.",
+  "quote": "Gelenek, neşe ve sevgiyle unutulmaz bir geceye davetlisiniz.",
+  "slug": "elanur-burak",
+  "theme": "sonbahar_akcaagac",
+  "falling_type": "maple",
+  "corner_flower_position": "right-bottom",
+  "music_file": "static/music/sample-romantik-chime.wav"
+}

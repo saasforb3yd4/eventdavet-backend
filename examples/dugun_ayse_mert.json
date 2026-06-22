@@ -1,0 +1,19 @@
+{
+  "bride_name": "Ayşe",
+  "groom_name": "Mert",
+  "event_title": "Düğün Davetiyesi",
+  "event_type": "Düğün",
+  "date": "2026-09-12",
+  "time": "19:30",
+  "venue": "Beyaz Köşk Davet Salonu",
+  "address": "Adana / Seyhan",
+  "maps_url": "https://maps.google.com/",
+  "rsvp_url": "https://wa.me/905555555555",
+  "intro": "Bir ömür mutluluğa evet dediğimiz bu özel günde sizleri de aramızda görmekten mutluluk duyarız.",
+  "quote": "Kalbimizin en güzel gününü sevdiklerimizle paylaşmak istiyoruz.",
+  "slug": "ayse-mert",
+  "theme": "ilkbahar_cicek",
+  "falling_type": "petals",
+  "corner_flower_position": "right-bottom",
+  "music_file": "static/music/sample-romantik-chime.wav"
+}
